@@ -1,3 +1,6 @@
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -6,17 +9,18 @@ from Split import Datasplit
 
 device=torch.device("cuda")
 device2=torch.device("cpu")
+CUDA_LAUNCH_BLOCKING=1
 
 
 input_size=768
 
 hidden_zise=100
 num_classes=2
-num_epochs=10
+num_epochs=1000
 batch_size=100
 learning_rate=0.001
 
-X=torch.load('embedings.pt')
+X=torch.load('embedings2.pt')
 y=torch.load(';labels.pt')
 
 for i in range(len(y)):
@@ -42,11 +46,11 @@ train_loader,val_loader,test_loader=split.get_split(batch_size=100,num_workers=8
 
 #model
 
-model=NeuralNet(768,100,2)
-model=model.to(device)
+model=NeuralNet()
+
 
 criterion=nn.BCEWithLogitsLoss()
-optimizer=torch.optim.Adam(model.parameters(),lr=learning_rate)
+optimizer=torch.optim.SGD(model.parameters(),lr=learning_rate)
 
 
 #training loop 
@@ -56,15 +60,13 @@ for epoch in range(num_epochs):
     train_loss=0.0
 
     for i,(text,label) in enumerate(train_loader):
-        text=text.to(device)
-        label=label.to(device)
         label=label.view(-1,2)
 
 
 
         output=model(text)
 
-        loss=criterion(output,label)
+        loss=criterion(output,label.view(-1,1))
         optimizer.zero_grad()
         loss.backward()
 
@@ -78,11 +80,9 @@ for epoch in range(num_epochs):
     model.eval()
 
     for data,target in val_loader:
-        data=data.to(device)
-        target=target.to(device)
 
         output=model(data)
-        loss=criterion(output,target)
+        loss=criterion(output,target.view(-1,1))
         optimizer.zero_grad()
         loss.backward()
 
